@@ -241,6 +241,11 @@
         </div>
       </div>
       <div class="field">
+        <label>ΔP the DP sensor shows now at this flow (Pa)</label>
+        <input type="number" id="dpRead" placeholder="e.g. 81" inputmode="numeric" step="1">
+        <div class="hint">The live ΔP inside the controller — the target flow will be set to read at exactly this ΔP.</div>
+      </div>
+      <div class="field">
         <label>Third-party measured flow — target (F2)</label>
         <div class="row" style="gap:10px;">
           <input type="number" id="f2" placeholder="e.g. 1000" inputmode="decimal" style="flex:2;">
@@ -248,7 +253,7 @@
             <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
           </select>
         </div>
-        <div class="hint">F1 and F2 can be in different units — converted before comparison. ΔP reading isn't needed; it cancels out.</div>
+        <div class="hint">F1 and F2 can be in different units — converted before comparison.</div>
       </div>
       <button class="btn" id="calcBtn3">Calculate</button>
     </div>
@@ -271,7 +276,7 @@
     <code>ΔP = k·Pv(V̇)</code>. Because ΔP scales with the square of airflow, this equals <code>ΔP@V̇nom · (V̇/V̇nom)²</code>.
     Pressure is also shown in mm water column (1 Pa ≈ 0.10197 mmWC).<br><br>
     Use the k value from your VAV box datasheet where you have it; the calibration tool recovers the same k from a single measured or quoted ΔP/airflow point.
-    The re-span tool matches the controller's reading to a third-party measurement using the factory ΔP@V̇nom: it raises V̇nom first (needed value <code>V̇nom1·F2/F1</code>), capped at <code>3.5·V̇max</code>; if the cap still can't reach the target it then reduces ΔP@V̇nom, since flow varies as <code>√(ΔP/ΔP@V̇nom)</code>. The measured ΔP itself cancels out and isn't required.
+    The re-span tool matches the controller's reading to a third-party measurement at the ΔP its sensor is showing now. It raises V̇nom first (needed value <code>V̇nom1·F2/F1</code>), capped at <code>3.5·V̇max</code>; if the cap still can't reach the target it pins V̇nom there and reduces ΔP@V̇nom to <code>ΔP_now·(V̇nom/F2)²</code>, so the controller reads F2 at that live ΔP (flow varies as <code>√(ΔP/ΔP@V̇nom)</code>).
   </p>
   <p class="credit">Developed by Dynacraft &middot; <a href="mailto:sales@dynacraftindia.com">sales@dynacraftindia.com</a></p>
 </div>
@@ -294,7 +299,7 @@
     if(!el) return;
     el.addEventListener('input', function(){ var m=el.value.match(/^\d+/); var c=m?m[0]:''; if(c!==el.value) el.value=c; });
   }
-  intOnly('dpNom'); intOnly('dpNomFac');
+  intOnly('dpNom'); intOnly('dpNomFac'); intOnly('dpRead');
 
   /* ---------- top mode switch ---------- */
   var mSwitch = document.getElementById('modeSwitch');
@@ -401,7 +406,7 @@
   /* ---------- MODE 3: Re-span Vnom / dP@Vnom ---------- */
   function calcSpan(){
     var uN = document.getElementById('unitNom').value;
-    var vnom1 = num('vnom1'), vmax = num('vmax'), dpNomFac = num('dpNomFac');
+    var vnom1 = num('vnom1'), vmax = num('vmax'), dpNomFac = num('dpNomFac'), dpRead = num('dpRead');
     var f1 = num('f1'), u1 = document.getElementById('unitF1').value;
     var f2 = num('f2'), u2 = document.getElementById('unitF2').value;
 
@@ -416,8 +421,8 @@
       var reqVnomb = vnom1b*(f2b/f1b);                        // Vnom needed if only Vnom changes
       if(isFinite(capb) && reqVnomb>capb){
         vnom2b = capb;                                        // pin Vnom at cap
-        // then lower dP@Vnom (uses factory dP@Vnom; dP reading cancels out)
-        dpNomNew = isFinite(dpNomFac)? dpNomFac*Math.pow(f1b*vnom2b/(vnom1b*f2b),2) : NaN;
+        // then lower dP@Vnom so F2 reads at the ACTUAL sensor dP: dP@Vnom = dpRead*(Vnom2/F2)^2
+        dpNomNew = isFinite(dpRead)? dpRead*Math.pow(vnom2b/f2b,2) : NaN;
         sUI  = 'V̇nom capped at 3.5×V̇max; ΔP@V̇nom reduced';
         sPDF = 'Vnom capped at 3.5 x Vmax; dP@Vnom reduced';
       } else {
@@ -442,7 +447,7 @@
     window.lastSpan = {
       vnom1: fmt(vnom1,0)+' '+UNAME[uN], vmax: fmt(vmax,0)+' '+UNAME[uN], dpNomFac: fmt(dpNomFac,1)+' Pa',
       cap: isFinite(capb)? fmt(capb/TO_M3S[uN],0)+' '+UNAME[uN] : '—',
-      f1: fmt(f1,0)+' '+UNAME[u1], f2: fmt(f2,0)+' '+UNAME[u2],
+      f1: fmt(f1,0)+' '+UNAME[u1], f2: fmt(f2,0)+' '+UNAME[u2], dpRead: fmt(dpRead,0)+' Pa',
       vnom2: isFinite(vnom2b)? vnom2b/TO_M3S[uN] : NaN, unit:UNAME[uN],
       dpNomNew:dpNomNewR, statusPDF:sPDF, all:all
     };
@@ -544,6 +549,7 @@
       {l:'Vmax', v:d.vmax},
       {l:'Upper limit (3.5 x Vmax)', v:d.cap},
       {l:'Controller shows now (F1)', v:d.f1},
+      {l:'Sensor dP now', v:d.dpRead},
       {l:'Third-party measured (F2)', v:d.f2}
     ]);
     y=block(doc,y+5,[
@@ -562,7 +568,7 @@
   document.getElementById('pdfBtn2').addEventListener('click', pdfCal);
   document.getElementById('pdfBtn3').addEventListener('click', pdfSpan);
 
-  ['vnom1','vmax','dpNomFac','f1','f2'].forEach(function(id){
+  ['vnom1','vmax','dpNomFac','dpRead','f1','f2'].forEach(function(id){
     var el=document.getElementById(id); el.addEventListener('input',calcSpan); el.addEventListener('change',calcSpan);
   });
   ['unitNom','unitF1','unitF2'].forEach(function(id){
