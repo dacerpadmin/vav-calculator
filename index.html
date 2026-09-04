@@ -25,15 +25,16 @@
   .credit{text-align:center; font-size:.75rem; color:var(--muted); margin-top:22px;}
   .credit a{color:var(--accent); text-decoration:none;}
   .credit a:hover{text-decoration:underline;}
-
   h1{font-size:1.35rem; margin:0 0 4px; letter-spacing:.2px;}
-  .sub{color:var(--muted); font-size:.85rem; margin:0 0 20px;}
+  .sub{color:var(--muted); font-size:.85rem; margin:0 0 18px;}
   .card{
     background:var(--card); border:1px solid var(--line); border-radius:16px;
     padding:18px 16px; margin-bottom:16px; box-shadow:0 8px 30px rgba(0,0,0,.25);
   }
+  .card h2{font-size:.9rem; margin:0 0 12px; color:var(--accent2); letter-spacing:.3px; text-transform:uppercase;}
   label{display:block; font-size:.82rem; color:var(--muted); margin-bottom:6px; font-weight:600;}
   .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
   input[type=number]{
     width:100%; padding:12px 12px; font-size:1.05rem; border-radius:10px;
     border:1px solid var(--line); background:var(--card2); color:var(--text);
@@ -54,19 +55,28 @@
     font-size:.92rem; font-weight:600; border-radius:8px; cursor:pointer; transition:.15s;
   }
   .seg button.active{background:var(--accent); color:#082032;}
+  /* top-level mode switcher */
+  .modes{display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:5px; margin-bottom:18px;}
+  .modes button{
+    flex:1; padding:11px 8px; border:none; background:transparent; color:var(--muted);
+    font-size:.86rem; font-weight:700; border-radius:9px; cursor:pointer; transition:.15s; line-height:1.2;
+  }
+  .modes button.active{background:linear-gradient(150deg,var(--accent),var(--accent2)); color:#082032;}
   .hint{font-size:.72rem; color:var(--muted); margin-top:4px;}
-  #calcBtn{
+  .btn{
     width:100%; margin-top:4px; padding:14px; font-size:1.05rem; font-weight:700;
     border:none; border-radius:10px; cursor:pointer; color:#082032;
     background:linear-gradient(150deg,var(--accent),var(--accent2));
   }
-  #calcBtn:active{transform:translateY(1px);}
+  .btn:active{transform:translateY(1px);}
+  .btn.ghost{background:transparent; color:var(--accent); border:1px solid var(--accent); margin-top:12px;}
   .results{background:linear-gradient(150deg,#12243b,#152a44); border:1px solid #1f3a5c;}
   .res-row{display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-bottom:1px dashed rgba(148,163,184,.25);}
   .res-row:last-child{border-bottom:none;}
   .res-label{font-size:.85rem; color:var(--muted);}
   .res-val{font-size:1.15rem; font-weight:700;}
   .res-val.big{font-size:1.6rem; color:var(--accent2);}
+  .res-val.k{font-size:1.6rem; color:var(--good);}
   .res-val .u{font-size:.75rem; color:var(--muted); font-weight:500; margin-left:3px;}
   .foot{font-size:.72rem; color:var(--muted); line-height:1.5; margin-top:6px;}
   code{background:var(--card2); padding:1px 5px; border-radius:5px; font-size:.78rem;}
@@ -76,148 +86,337 @@
 <div class="wrap">
   <div class="brand"><img src="data:image/png;base64,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" alt="Dynacraft"></div>
   <h1>VAV Differential Pressure Calculator</h1>
-  <p class="sub">Velocity pressure at a VAV inlet from airflow &amp; inlet size. Air density fixed at 1.2 kg/m³.</p>
+  <p class="sub">Two tools: airflow &rarr; &Delta;P with a known k-factor, or derive a spigot's k-factor from &Delta;P at nominal airflow and predict &Delta;P at any flow.</p>
 
-  <div class="card">
-    <div class="seg" id="shapeSeg">
-      <button data-shape="round" class="active">Round inlet</button>
-      <button data-shape="square">Square / rectangular</button>
-    </div>
-
-    <div id="roundInputs">
-      <div class="field">
-        <label>Inlet diameter (mm)</label>
-        <input type="number" id="dia" placeholder="e.g. 200" inputmode="decimal">
-      </div>
-    </div>
-
-    <div id="squareInputs" style="display:none;">
-      <div class="row">
-        <div class="field">
-          <label>Width (mm)</label>
-          <input type="number" id="width" placeholder="e.g. 300" inputmode="decimal">
-        </div>
-        <div class="field">
-          <label>Height (mm)</label>
-          <input type="number" id="height" placeholder="e.g. 200" inputmode="decimal">
-        </div>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Airflow</label>
-      <div class="row" style="gap:10px;">
-        <input type="number" id="cfm" placeholder="e.g. 500" inputmode="decimal" style="flex:2;">
-        <select id="flowUnit" style="flex:1;">
-          <option value="cfm">CFM</option>
-          <option value="ls">L/s</option>
-          <option value="m3h">m³/h</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Amplification factor (k)</label>
-      <input type="number" id="kfac" value="1" step="0.1" inputmode="decimal">
-      <div class="hint">Raw velocity pressure = k of 1. Set to your flow-ring's k (typ. 2–3) for the amplified sensor signal.</div>
-    </div>
-
-    <button id="calcBtn" type="button">Calculate</button>
+  <div class="modes" id="modeSwitch">
+    <button data-mode="std" class="active">Airflow &rarr; &Delta;P<br><small>manual k-factor</small></button>
+    <button data-mode="cal">Derive k from &Delta;P@V&#775;nom<br><small>then predict &Delta;P</small></button>
   </div>
 
-  <div class="card results">
-    <div class="res-row">
-      <span class="res-label">Inlet area</span>
-      <span class="res-val" id="outArea">— <span class="u">m²</span></span>
+  <!-- ============ MODE 1: STANDARD ============ -->
+  <div id="modeStd">
+    <div class="card">
+      <div class="seg" id="shapeSeg">
+        <button data-shape="round" class="active">Round inlet</button>
+        <button data-shape="square">Square / rectangular</button>
+      </div>
+
+      <div id="roundInputs">
+        <div class="field">
+          <label>Inlet diameter (mm)</label>
+          <input type="number" id="dia" placeholder="e.g. 200" inputmode="decimal">
+        </div>
+      </div>
+      <div id="squareInputs" style="display:none;">
+        <div class="row">
+          <div class="field"><label>Width (mm)</label><input type="number" id="width" placeholder="e.g. 300" inputmode="decimal"></div>
+          <div class="field"><label>Height (mm)</label><input type="number" id="height" placeholder="e.g. 200" inputmode="decimal"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Airflow</label>
+        <div class="row" style="gap:10px;">
+          <input type="number" id="cfm" placeholder="e.g. 500" inputmode="decimal" style="flex:2;">
+          <select id="flowUnit" style="flex:1;">
+            <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Amplification factor (k)</label>
+        <input type="number" id="kfac" value="1" step="0.1" inputmode="decimal">
+        <div class="hint">Raw velocity pressure = k of 1. Set to your flow-ring's k (typ. 2–3) for the amplified sensor signal.</div>
+      </div>
+      <button class="btn" id="calcBtn">Calculate</button>
     </div>
-    <div class="res-row">
-      <span class="res-label">Inlet velocity</span>
-      <span class="res-val" id="outVel">— <span class="u">m/s</span></span>
+
+    <div class="card results">
+      <div class="res-row"><span class="res-label">Inlet area</span><span class="res-val" id="outArea">— <span class="u">m²</span></span></div>
+      <div class="res-row"><span class="res-label">Inlet velocity</span><span class="res-val" id="outVel">— <span class="u">m/s</span></span></div>
+      <div class="res-row"><span class="res-label">Raw velocity pressure (Pv)</span><span class="res-val" id="outPv">— <span class="u">Pa</span></span></div>
+      <div class="res-row"><span class="res-label">Amplified ΔP (Pv × k)</span><span class="res-val big" id="outDp">— <span class="u">Pa</span></span></div>
+      <div class="res-row"><span class="res-label">Amplified ΔP</span><span class="res-val" id="outDpMm">— <span class="u">mmWC</span></span></div>
     </div>
-    <div class="res-row">
-      <span class="res-label">Raw velocity pressure (Pv)</span>
-      <span class="res-val" id="outPv">— <span class="u">Pa</span></span>
+    <button class="btn ghost" id="pdfBtn">⤓ Download PDF</button>
+  </div>
+
+  <!-- ============ MODE 2: CALIBRATE k ============ -->
+  <div id="modeCal" style="display:none;">
+    <div class="card">
+      <h2>1 · Spigot size</h2>
+      <div class="seg" id="shapeSeg2">
+        <button data-shape="round" class="active">Round spigot</button>
+        <button data-shape="square">Square / rectangular</button>
+      </div>
+      <div id="roundInputs2">
+        <div class="field">
+          <label>Spigot diameter (mm)</label>
+          <input type="number" id="dia2" placeholder="e.g. 250" inputmode="decimal">
+        </div>
+      </div>
+      <div id="squareInputs2" style="display:none;">
+        <div class="row">
+          <div class="field"><label>Width (mm)</label><input type="number" id="width2" placeholder="e.g. 300" inputmode="decimal"></div>
+          <div class="field"><label>Height (mm)</label><input type="number" id="height2" placeholder="e.g. 200" inputmode="decimal"></div>
+        </div>
+      </div>
     </div>
-    <div class="res-row">
-      <span class="res-label">Amplified ΔP (Pv × k)</span>
-      <span class="res-val big" id="outDp">— <span class="u">Pa</span></span>
+
+    <div class="card">
+      <h2>2 · Calibration point (from datasheet)</h2>
+      <div class="field">
+        <label>ΔP at nominal airflow (Pa)</label>
+        <input type="number" id="dpNom" placeholder="e.g. 100" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Nominal airflow V&#775;nom</label>
+        <div class="row" style="gap:10px;">
+          <input type="number" id="vnom" placeholder="e.g. 800" inputmode="decimal" style="flex:2;">
+          <select id="flowUnit2" style="flex:1;">
+            <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
+          </select>
+        </div>
+        <div class="hint">The airflow at which the datasheet ΔP above is quoted. The unit here applies to the target airflow below too.</div>
+      </div>
     </div>
+
+    <div class="card">
+      <h2>3 · Target airflow</h2>
+      <div class="field">
+        <label>Airflow to evaluate (e.g. V&#775;max, or any value)</label>
+        <input type="number" id="targetFlow" placeholder="e.g. 1200" inputmode="decimal">
+      </div>
+      <button class="btn" id="calcBtn2">Calculate</button>
+    </div>
+
+    <div class="card results">
+      <div class="res-row"><span class="res-label">Spigot area</span><span class="res-val" id="outArea2">— <span class="u">m²</span></span></div>
+      <div class="res-row"><span class="res-label">Velocity at V&#775;nom</span><span class="res-val" id="outVnomVel">— <span class="u">m/s</span></span></div>
+      <div class="res-row"><span class="res-label">Velocity pressure at V&#775;nom</span><span class="res-val" id="outPvNom">— <span class="u">Pa</span></span></div>
+      <div class="res-row"><span class="res-label">Derived amplification factor (k)</span><span class="res-val k" id="outK">—</span></div>
+      <div class="res-row"><span class="res-label">Velocity at target airflow</span><span class="res-val" id="outVelT">— <span class="u">m/s</span></span></div>
+      <div class="res-row"><span class="res-label">Derived ΔP at target</span><span class="res-val big" id="outDpT">— <span class="u">Pa</span></span></div>
+      <div class="res-row"><span class="res-label">Derived ΔP at target</span><span class="res-val" id="outDpTmm">— <span class="u">mmWC</span></span></div>
+    </div>
+    <button class="btn ghost" id="pdfBtn2">⤓ Download PDF</button>
   </div>
 
   <p class="foot">
-    <strong>Formulas.</strong> Area <code>A = π/4·d²</code> (round) or <code>A = W·H</code> (square).
-    Velocity <code>v = Q/A</code> with <code>Q</code> converted to m³/s (CFM ×0.00047195, L/s ×0.001, m³/h ÷3600).
+    <strong>How it works.</strong> Area <code>A = π/4·d²</code> (round) or <code>A = W·H</code> (square).
+    Velocity <code>v = V̇/A</code> with airflow V̇ converted to m³/s (CFM ×0.00047195, L/s ×0.001, m³/h ÷3600).
     Velocity pressure <code>Pv = ½·ρ·v²</code>, ρ = 1.2 kg/m³.
-    Amplified <code>ΔP = Pv·k</code>.<br><br>
-    Raw Pv is manufacturer-independent physics. The amplified ΔP is what an averaging flow ring reports; use the k value from your VAV box datasheet for an accurate sensor reading.
+    In the calibration tool the spigot's amplification factor is <code>k = ΔP@V̇nom ÷ Pv(V̇nom)</code>, and the predicted
+    <code>ΔP = k·Pv(V̇)</code>. Because ΔP scales with the square of airflow, this equals <code>ΔP@V̇nom · (V̇/V̇nom)²</code>.
+    Pressure is also shown in mm water column (1 Pa ≈ 0.10197 mmWC).<br><br>
+    Use the k value from your VAV box datasheet where you have it; the calibration tool recovers the same k from a single measured or quoted ΔP/airflow point.
   </p>
   <p class="credit">Developed by Dynacraft &middot; <a href="mailto:sales@dynacraftindia.com">sales@dynacraftindia.com</a></p>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-  var shape = 'round';
-  var RHO = 1.2;
   var TO_M3S = { cfm:0.000471947, ls:0.001, m3h:1/3600 };
-
-  var seg = document.getElementById('shapeSeg');
-  seg.addEventListener('click', function(e){
-    var b = e.target.closest('button');
-    if(!b) return;
-    shape = b.dataset.shape;
-    Array.prototype.forEach.call(seg.children, function(c){ c.classList.toggle('active', c===b); });
-    document.getElementById('roundInputs').style.display  = shape==='round' ? '' : 'none';
-    document.getElementById('squareInputs').style.display = shape==='square' ? '' : 'none';
-    calc();
-  });
+  var UNAME  = { cfm:'CFM', ls:'L/s', m3h:'m³/h' };
+  var RHO = 1.2;
+  var PA_TO_MMWC = 0.101972;
 
   function num(id){ var v = parseFloat(document.getElementById(id).value); return isFinite(v) ? v : NaN; }
-
-  function fmt(x, dp){
-    if(!isFinite(x)) return '—';
-    return x.toLocaleString(undefined,{minimumFractionDigits:dp, maximumFractionDigits:dp});
-  }
-
-  function calc(){
-    var area = NaN;
-    if(shape==='round'){
-      var d = num('dia')/1000;
-      if(isFinite(d) && d>0) area = Math.PI/4 * d*d;
-    } else {
-      var w = num('width')/1000, h = num('height')/1000;
-      if(isFinite(w) && isFinite(h) && w>0 && h>0) area = w*h;
-    }
-
-    var flow = num('cfm');
-    var unit = document.getElementById('flowUnit').value;
-    var k = num('kfac'); if(!isFinite(k)) k = 1;
-
-    var vel=NaN, pv=NaN, dp=NaN;
-    if(isFinite(area) && area>0 && isFinite(flow)){
-      var q = flow * TO_M3S[unit];
-      vel = q/area;
-      pv = 0.5 * RHO * vel*vel;
-      dp = pv * k;
-    }
-
-    setVal('outArea', area, 5, 'm²');
-    setVal('outVel', vel, 2, 'm/s');
-    setVal('outPv', pv, 1, 'Pa');
-    setVal('outDp', dp, 1, 'Pa');
-  }
-
+  function fmt(x, dp){ if(!isFinite(x)) return '—'; return x.toLocaleString(undefined,{minimumFractionDigits:dp, maximumFractionDigits:dp}); }
   function setVal(id, val, dp, unit){
-    document.getElementById(id).innerHTML = fmt(val,dp) + ' <span class="u">'+unit+'</span>';
+    document.getElementById(id).innerHTML = fmt(val,dp) + (unit ? ' <span class="u">'+unit+'</span>' : '');
   }
 
-  ['dia','width','height','cfm','kfac'].forEach(function(id){
-    var el = document.getElementById(id);
-    el.addEventListener('input', calc);
-    el.addEventListener('keyup', calc);
-    el.addEventListener('change', calc);
+  /* ---------- top mode switch ---------- */
+  var mSwitch = document.getElementById('modeSwitch');
+  mSwitch.addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    var mode = b.dataset.mode;
+    Array.prototype.forEach.call(mSwitch.children, function(c){ c.classList.toggle('active', c===b); });
+    document.getElementById('modeStd').style.display = mode==='std' ? '' : 'none';
+    document.getElementById('modeCal').style.display = mode==='cal' ? '' : 'none';
   });
-  document.getElementById('flowUnit').addEventListener('change', calc);
-  document.getElementById('calcBtn').addEventListener('click', calc);
-  calc();
+
+  /* ---------- generic shape toggle ---------- */
+  function wireShape(segId, roundId, squareId, getShape, setShape){
+    var seg = document.getElementById(segId);
+    seg.addEventListener('click', function(e){
+      var b = e.target.closest('button'); if(!b) return;
+      setShape(b.dataset.shape);
+      Array.prototype.forEach.call(seg.children, function(c){ c.classList.toggle('active', c===b); });
+      document.getElementById(roundId).style.display  = getShape()==='round' ? '' : 'none';
+      document.getElementById(squareId).style.display = getShape()==='square' ? '' : 'none';
+    });
+  }
+
+  function areaFrom(shape, diaId, wId, hId){
+    if(shape==='round'){
+      var d = num(diaId)/1000;
+      return (isFinite(d) && d>0) ? Math.PI/4*d*d : NaN;
+    } else {
+      var w = num(wId)/1000, h = num(hId)/1000;
+      return (isFinite(w)&&isFinite(h)&&w>0&&h>0) ? w*h : NaN;
+    }
+  }
+
+  /* ---------- MODE 1 ---------- */
+  var shapeA = 'round';
+  wireShape('shapeSeg','roundInputs','squareInputs', function(){return shapeA;}, function(s){shapeA=s;});
+  function calcStd(){
+    var area = areaFrom(shapeA,'dia','width','height');
+    var flow = num('cfm'); var unit = document.getElementById('flowUnit').value;
+    var k = num('kfac'); if(!isFinite(k)) k = 1;
+    var vel=NaN, pv=NaN, dp=NaN;
+    if(isFinite(area)&&area>0&&isFinite(flow)){
+      var q = flow*TO_M3S[unit]; vel = q/area; pv = 0.5*RHO*vel*vel; dp = pv*k;
+    }
+    setVal('outArea',area,5,'m²'); setVal('outVel',vel,2,'m/s');
+    setVal('outPv',pv,1,'Pa'); setVal('outDp',dp,1,'Pa');
+    setVal('outDpMm', isFinite(dp)?dp*PA_TO_MMWC:NaN, 2,'mmWC');
+    window.lastStd = {
+      shape:shapeA,
+      dim: shapeA==='round' ? (fmt(num('dia'),0)+' mm dia') : (fmt(num('width'),0)+' x '+fmt(num('height'),0)+' mm'),
+      flow: fmt(flow,0)+' '+UNAME[unit], k:k, area:area, vel:vel, pv:pv, dp:dp
+    };
+  }
+
+  /* ---------- MODE 2 ---------- */
+  var shapeB = 'round';
+  wireShape('shapeSeg2','roundInputs2','squareInputs2', function(){return shapeB;}, function(s){shapeB=s;});
+  function calcCal(){
+    var area = areaFrom(shapeB,'dia2','width2','height2');
+    var unit = document.getElementById('flowUnit2').value;
+    var dpNom = num('dpNom');
+    var vnom = num('vnom');
+    var vt = num('targetFlow');
+
+    var vNomVel=NaN, pvNom=NaN, k=NaN, velT=NaN, dpT=NaN;
+    if(isFinite(area)&&area>0&&isFinite(vnom)&&vnom>0){
+      vNomVel = (vnom*TO_M3S[unit])/area;
+      pvNom = 0.5*RHO*vNomVel*vNomVel;
+      if(isFinite(dpNom)&&pvNom>0) k = dpNom/pvNom;
+    }
+    if(isFinite(area)&&area>0&&isFinite(vt)){
+      velT = (vt*TO_M3S[unit])/area;
+      if(isFinite(k)) dpT = k*0.5*RHO*velT*velT;
+    }
+    setVal('outArea2',area,5,'m²');
+    setVal('outVnomVel',vNomVel,2,'m/s');
+    setVal('outPvNom',pvNom,1,'Pa');
+    setVal('outK', k, 3, '');
+    setVal('outVelT',velT,2,'m/s');
+    setVal('outDpT',dpT,1,'Pa');
+    setVal('outDpTmm', isFinite(dpT)?dpT*PA_TO_MMWC:NaN, 2,'mmWC');
+    window.lastCal = {
+      shape:shapeB,
+      dim: shapeB==='round' ? (fmt(num('dia2'),0)+' mm dia') : (fmt(num('width2'),0)+' x '+fmt(num('height2'),0)+' mm'),
+      dpNom:dpNom, vnom:fmt(vnom,0)+' '+UNAME[unit], vt:fmt(vt,0)+' '+UNAME[unit],
+      area:area, vNomVel:vNomVel, pvNom:pvNom, k:k, velT:velT, dpT:dpT
+    };
+  }
+
+  /* ---------- wiring ---------- */
+  ['dia','width','height','cfm','kfac'].forEach(function(id){
+    var el=document.getElementById(id); el.addEventListener('input',calcStd); el.addEventListener('change',calcStd);
+  });
+  document.getElementById('flowUnit').addEventListener('change',calcStd);
+  document.getElementById('calcBtn').addEventListener('click',calcStd);
+
+  ['dia2','width2','height2','dpNom','vnom','targetFlow'].forEach(function(id){
+    var el=document.getElementById(id); el.addEventListener('input',calcCal); el.addEventListener('change',calcCal);
+  });
+  document.getElementById('flowUnit2').addEventListener('change',calcCal);
+  document.getElementById('calcBtn2').addEventListener('click',calcCal);
+
+  /* ---------- PDF export ---------- */
+  function ensureJs(){
+    if(window.jspdf && window.jspdf.jsPDF) return true;
+    alert('PDF library could not load. Please check your internet connection and try again.');
+    return false;
+  }
+  function stamp(){ return new Date().toISOString().slice(0,16).replace(/[:T]/g,'-'); }
+  function logoURI(){ var i=document.querySelector('.brand img'); return i?i.src:''; }
+  function header(doc){
+    var u=logoURI();
+    if(u.indexOf('data:image')===0){ try{ doc.addImage(u,'PNG',14,12,50,7.6); }catch(e){} }
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(20);
+    doc.text('VAV Differential Pressure - Calculation Report', 14, 28);
+    doc.setDrawColor(205); doc.line(14,31,196,31);
+  }
+  function footer(doc){
+    var y=283; doc.setDrawColor(205); doc.line(14,y-5,196,y-5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90);
+    doc.text('Developed by Dynacraft  ·  sales@dynacraftindia.com', 14, y);
+    doc.text('dacerpadmin.github.io/vav-calculator', 14, y+5);
+  }
+  function block(doc,y,items){
+    items.forEach(function(p){
+      if(p.h){ doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,140,170); doc.text(p.h,14,y); y+=6.5; return; }
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      doc.setTextColor(80); doc.text(p.l,16,y);
+      doc.setFont('helvetica','bold'); doc.setTextColor(20); doc.text(String(p.v),120,y);
+      y+=6.5;
+    });
+    return y;
+  }
+  function dpStr(pa){ return isFinite(pa) ? (fmt(pa,1)+' Pa  ('+fmt(pa*PA_TO_MMWC,2)+' mmWC)') : '—'; }
+
+  function pdfStd(){
+    calcStd(); if(!ensureJs()) return; var d=window.lastStd;
+    var doc=new window.jspdf.jsPDF(); header(doc);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120);
+    doc.text('Tool: Airflow to dP (manual k-factor)   |   '+new Date().toLocaleString(),14,37);
+    var y=block(doc,48,[
+      {h:'Inputs'},
+      {l:'Inlet shape', v:d.shape==='round'?'Round':'Square / rectangular'},
+      {l:'Inlet size', v:d.dim},
+      {l:'Airflow', v:d.flow},
+      {l:'Amplification factor (k)', v:fmt(d.k,3)}
+    ]);
+    y=block(doc,y+5,[
+      {h:'Results'},
+      {l:'Inlet area', v:fmt(d.area,5)+' m²'},
+      {l:'Inlet velocity', v:fmt(d.vel,2)+' m/s'},
+      {l:'Raw velocity pressure (Pv)', v:fmt(d.pv,1)+' Pa'},
+      {l:'Amplified dP (Pv x k)', v:dpStr(d.dp)}
+    ]);
+    doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(120);
+    doc.text('Pv = 0.5 x rho x v²  (rho = 1.2 kg/m³),   v = airflow / area,   dP = k x Pv.',14,y+6);
+    footer(doc); doc.save('VAV-calculation-'+stamp()+'.pdf');
+  }
+
+  function pdfCal(){
+    calcCal(); if(!ensureJs()) return; var d=window.lastCal;
+    var doc=new window.jspdf.jsPDF(); header(doc);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120);
+    doc.text('Tool: Derive k from dP at Vnom, then predict dP   |   '+new Date().toLocaleString(),14,37);
+    var y=block(doc,48,[
+      {h:'Inputs'},
+      {l:'Spigot shape', v:d.shape==='round'?'Round':'Square / rectangular'},
+      {l:'Spigot size', v:d.dim},
+      {l:'dP at nominal airflow', v:fmt(d.dpNom,1)+' Pa'},
+      {l:'Nominal airflow (Vnom)', v:d.vnom},
+      {l:'Target airflow', v:d.vt}
+    ]);
+    y=block(doc,y+5,[
+      {h:'Results'},
+      {l:'Spigot area', v:fmt(d.area,5)+' m²'},
+      {l:'Velocity at Vnom', v:fmt(d.vNomVel,2)+' m/s'},
+      {l:'Velocity pressure at Vnom', v:fmt(d.pvNom,1)+' Pa'},
+      {l:'Derived amplification factor (k)', v:fmt(d.k,3)},
+      {l:'Velocity at target airflow', v:fmt(d.velT,2)+' m/s'},
+      {l:'Derived dP at target', v:dpStr(d.dpT)}
+    ]);
+    doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(120);
+    doc.text('k = dP@Vnom / Pv(Vnom);   dP = k x Pv(V) = dP@Vnom x (V / Vnom)².',14,y+6);
+    footer(doc); doc.save('VAV-calibration-'+stamp()+'.pdf');
+  }
+
+  document.getElementById('pdfBtn').addEventListener('click', pdfStd);
+  document.getElementById('pdfBtn2').addEventListener('click', pdfCal);
+
+  calcStd(); calcCal();
 </script>
 </body>
 </html>
