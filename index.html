@@ -170,7 +170,7 @@
       <h2>2 · Calibration point (from datasheet)</h2>
       <div class="field">
         <label>ΔP at nominal airflow (Pa)</label>
-        <input type="number" id="dpNom" placeholder="e.g. 100" inputmode="decimal">
+        <input type="number" id="dpNom" placeholder="e.g. 100" inputmode="numeric" step="1">
       </div>
       <div class="field">
         <label>Nominal airflow V&#775;nom</label>
@@ -208,18 +208,31 @@
   <!-- ============ MODE 3: RE-SPAN Vnom ============ -->
   <div id="modeSpan" style="display:none;">
     <div class="card">
-      <h2>Current setting &amp; readings</h2>
+      <h2>1 · Factory settings &amp; limit</h2>
       <div class="field">
-        <label>Current nominal V&#775;nom1 (as set in the controller)</label>
+        <label>Nominal V&#775;nom1 (factory set)</label>
         <div class="row" style="gap:10px;">
           <input type="number" id="vnom1" placeholder="e.g. 1000" inputmode="decimal" style="flex:2;">
-          <select id="unitVnom1" style="flex:1;">
+          <select id="unitNom" style="flex:1;">
             <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
           </select>
         </div>
       </div>
       <div class="field">
-        <label>Flow the unit shows now (F1)</label>
+        <label>ΔP@V&#775;nom (factory / test-bench, Pa)</label>
+        <input type="number" id="dpNomFac" placeholder="e.g. 100" inputmode="numeric" step="1">
+      </div>
+      <div class="field">
+        <label>V&#775;max (same unit as V&#775;nom1)</label>
+        <input type="number" id="vmax" placeholder="e.g. 500" inputmode="decimal">
+        <div class="hint">V&#775;nom is capped at 3.5 × V&#775;max.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Flows</h2>
+      <div class="field">
+        <label>Flow the controller shows now (F1)</label>
         <div class="row" style="gap:10px;">
           <input type="number" id="f1" placeholder="e.g. 900" inputmode="decimal" style="flex:2;">
           <select id="unitF1" style="flex:1;">
@@ -228,22 +241,24 @@
         </div>
       </div>
       <div class="field">
-        <label>Flow you want it to show (F2)</label>
+        <label>Third-party measured flow — target (F2)</label>
         <div class="row" style="gap:10px;">
           <input type="number" id="f2" placeholder="e.g. 1000" inputmode="decimal" style="flex:2;">
           <select id="unitF2" style="flex:1;">
             <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
           </select>
         </div>
-        <div class="hint">F1 and F2 can even be in different units — they're converted before the ratio. ΔP need not be entered; it cancels out.</div>
+        <div class="hint">F1 and F2 can be in different units — converted before comparison. ΔP reading isn't needed; it cancels out.</div>
       </div>
       <button class="btn" id="calcBtn3">Calculate</button>
     </div>
 
     <div class="card results">
-      <div class="res-row"><span class="res-label">Correction factor (F2 ÷ F1)</span><span class="res-val" id="outFactor">—</span></div>
-      <div class="res-row"><span class="res-label">New nominal to enter (V&#775;nom2)</span><span class="res-val big" id="outVnom2">—</span></div>
-      <div class="res-row"><span class="res-label">V&#775;nom2 in all units</span><span class="res-val" id="outVnom2All" style="font-size:.95rem;">—</span></div>
+      <div class="res-row"><span class="res-label">Upper limit 3.5 × V&#775;max</span><span class="res-val" id="outCap">—</span></div>
+      <div class="res-row"><span class="res-label">New V&#775;nom to set</span><span class="res-val big" id="outVnom2">—</span></div>
+      <div class="res-row"><span class="res-label">New ΔP@V&#775;nom to set</span><span class="res-val" id="outDpNomNew">— <span class="u">Pa</span></span></div>
+      <div class="res-row"><span class="res-label" id="outStatusLbl">Status</span><span class="res-val" id="outStatus" style="font-size:.85rem;">—</span></div>
+      <div class="res-row"><span class="res-label">New V&#775;nom in all units</span><span class="res-val" id="outVnom2All" style="font-size:.9rem;">—</span></div>
     </div>
     <button class="btn ghost" id="pdfBtn3">⤓ Download PDF</button>
   </div>
@@ -256,7 +271,7 @@
     <code>ΔP = k·Pv(V̇)</code>. Because ΔP scales with the square of airflow, this equals <code>ΔP@V̇nom · (V̇/V̇nom)²</code>.
     Pressure is also shown in mm water column (1 Pa ≈ 0.10197 mmWC).<br><br>
     Use the k value from your VAV box datasheet where you have it; the calibration tool recovers the same k from a single measured or quoted ΔP/airflow point.
-    In the re-span tool, since displayed flow at a fixed measured ΔP is proportional to the nominal setting, the new value is simply <code>V̇nom2 = V̇nom1 · (F2/F1)</code> — enter it and the reading shifts from F1 to F2.
+    The re-span tool matches the controller's reading to a third-party measurement using the factory ΔP@V̇nom: it raises V̇nom first (needed value <code>V̇nom1·F2/F1</code>), capped at <code>3.5·V̇max</code>; if the cap still can't reach the target it then reduces ΔP@V̇nom, since flow varies as <code>√(ΔP/ΔP@V̇nom)</code>. The measured ΔP itself cancels out and isn't required.
   </p>
   <p class="credit">Developed by Dynacraft &middot; <a href="mailto:sales@dynacraftindia.com">sales@dynacraftindia.com</a></p>
 </div>
@@ -273,6 +288,13 @@
   function setVal(id, val, dp, unit){
     document.getElementById(id).innerHTML = fmt(val,dp) + (unit ? ' <span class="u">'+unit+'</span>' : '');
   }
+  // ΔP is entered as whole Pascals only — strip any non-digit as it's typed
+  function intOnly(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', function(){ var m=el.value.match(/^\d+/); var c=m?m[0]:''; if(c!==el.value) el.value=c; });
+  }
+  intOnly('dpNom'); intOnly('dpNomFac');
 
   /* ---------- top mode switch ---------- */
   var mSwitch = document.getElementById('modeSwitch');
@@ -376,27 +398,53 @@
   document.getElementById('flowUnit2').addEventListener('change',calcCal);
   document.getElementById('calcBtn2').addEventListener('click',calcCal);
 
-  /* ---------- MODE 3: Re-span Vnom ---------- */
+  /* ---------- MODE 3: Re-span Vnom / dP@Vnom ---------- */
   function calcSpan(){
-    var vnom1 = num('vnom1'); var uV = document.getElementById('unitVnom1').value;
-    var f1 = num('f1'); var u1 = document.getElementById('unitF1').value;
-    var f2 = num('f2'); var u2 = document.getElementById('unitF2').value;
-    var factor=NaN, vnom2=NaN;
-    if(isFinite(f1)&&f1>0&&isFinite(f2)){
-      factor = (f2*TO_M3S[u2])/(f1*TO_M3S[u1]);   // unit-safe ratio
+    var uN = document.getElementById('unitNom').value;
+    var vnom1 = num('vnom1'), vmax = num('vmax'), dpNomFac = num('dpNomFac');
+    var f1 = num('f1'), u1 = document.getElementById('unitF1').value;
+    var f2 = num('f2'), u2 = document.getElementById('unitF2').value;
+
+    var vnom1b = isFinite(vnom1)? vnom1*TO_M3S[uN] : NaN;
+    var vmaxb  = isFinite(vmax)?  vmax*TO_M3S[uN]  : NaN;
+    var f1b = isFinite(f1)? f1*TO_M3S[u1] : NaN;
+    var f2b = isFinite(f2)? f2*TO_M3S[u2] : NaN;
+    var capb = isFinite(vmaxb)? 3.5*vmaxb : NaN;
+
+    var vnom2b=NaN, dpNomNew=NaN, sUI='—', sPDF='—';
+    if(isFinite(vnom1b)&&isFinite(f1b)&&f1b>0&&isFinite(f2b)){
+      var reqVnomb = vnom1b*(f2b/f1b);                        // Vnom needed if only Vnom changes
+      if(isFinite(capb) && reqVnomb>capb){
+        vnom2b = capb;                                        // pin Vnom at cap
+        // then lower dP@Vnom (uses factory dP@Vnom; dP reading cancels out)
+        dpNomNew = isFinite(dpNomFac)? dpNomFac*Math.pow(f1b*vnom2b/(vnom1b*f2b),2) : NaN;
+        sUI  = 'V̇nom capped at 3.5×V̇max; ΔP@V̇nom reduced';
+        sPDF = 'Vnom capped at 3.5 x Vmax; dP@Vnom reduced';
+      } else {
+        vnom2b = reqVnomb;
+        dpNomNew = dpNomFac;                                  // unchanged
+        sUI  = 'Target met by V̇nom alone; ΔP@V̇nom unchanged';
+        sPDF = 'Target met by Vnom alone; dP@Vnom unchanged';
+      }
     }
-    if(isFinite(vnom1)&&isFinite(factor)) vnom2 = vnom1*factor;
-    setVal('outFactor', factor, 3, '');
-    setVal('outVnom2', vnom2, 0, UNAME[uV]);
+
+    var dpNomNewR = isFinite(dpNomNew)? Math.round(dpNomNew) : NaN;   // enter as whole Pa
+    setVal('outCap', isFinite(capb)? capb/TO_M3S[uN] : NaN, 0, UNAME[uN]);
+    setVal('outVnom2', isFinite(vnom2b)? vnom2b/TO_M3S[uN] : NaN, 0, UNAME[uN]);
+    setVal('outDpNomNew', dpNomNewR, 0, 'Pa');
+    document.getElementById('outStatus').textContent = sUI;
     var all='—';
-    if(isFinite(vnom2)){
-      var base = vnom2*TO_M3S[uV]; // m3/s
-      all = fmt(base/TO_M3S.cfm,0)+' CFM  ·  '+fmt(base/TO_M3S.m3h,0)+' m³/h  ·  '+fmt(base/TO_M3S.ls,1)+' L/s';
+    if(isFinite(vnom2b)){
+      all = fmt(vnom2b/TO_M3S.cfm,0)+' CFM  ·  '+fmt(vnom2b/TO_M3S.m3h,0)+' m³/h  ·  '+fmt(vnom2b/TO_M3S.ls,1)+' L/s';
     }
     document.getElementById('outVnom2All').innerHTML = all;
+
     window.lastSpan = {
-      vnom1: fmt(vnom1,0)+' '+UNAME[uV], f1: fmt(f1,0)+' '+UNAME[u1], f2: fmt(f2,0)+' '+UNAME[u2],
-      factor:factor, vnom2:vnom2, unit:UNAME[uV], all:all
+      vnom1: fmt(vnom1,0)+' '+UNAME[uN], vmax: fmt(vmax,0)+' '+UNAME[uN], dpNomFac: fmt(dpNomFac,1)+' Pa',
+      cap: isFinite(capb)? fmt(capb/TO_M3S[uN],0)+' '+UNAME[uN] : '—',
+      f1: fmt(f1,0)+' '+UNAME[u1], f2: fmt(f2,0)+' '+UNAME[u2],
+      vnom2: isFinite(vnom2b)? vnom2b/TO_M3S[uN] : NaN, unit:UNAME[uN],
+      dpNomNew:dpNomNewR, statusPDF:sPDF, all:all
     };
   }
 
@@ -488,21 +536,25 @@
     calcSpan(); if(!ensureJs()) return; var d=window.lastSpan;
     var doc=new window.jspdf.jsPDF(); header(doc);
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120);
-    doc.text('Tool: Re-span Vnom to match measured flow   |   '+new Date().toLocaleString(),14,37);
+    doc.text('Tool: Re-span Vnom / dP@Vnom to match measured flow   |   '+new Date().toLocaleString(),14,37);
     var y=block(doc,48,[
       {h:'Inputs'},
-      {l:'Current nominal (Vnom1)', v:d.vnom1},
-      {l:'Flow shown now (F1)', v:d.f1},
-      {l:'Flow wanted (F2)', v:d.f2}
+      {l:'Nominal Vnom1 (factory)', v:d.vnom1},
+      {l:'dP@Vnom (factory)', v:d.dpNomFac},
+      {l:'Vmax', v:d.vmax},
+      {l:'Upper limit (3.5 x Vmax)', v:d.cap},
+      {l:'Controller shows now (F1)', v:d.f1},
+      {l:'Third-party measured (F2)', v:d.f2}
     ]);
     y=block(doc,y+5,[
-      {h:'Result'},
-      {l:'Correction factor (F2 / F1)', v:fmt(d.factor,3)},
-      {l:'New nominal to enter (Vnom2)', v:isFinite(d.vnom2)?(fmt(d.vnom2,0)+' '+d.unit):'—'},
-      {l:'Vnom2 in all units', v:d.all}
+      {h:'New settings to enter'},
+      {l:'New Vnom', v:isFinite(d.vnom2)?(fmt(d.vnom2,0)+' '+d.unit):'—'},
+      {l:'New dP@Vnom', v:isFinite(d.dpNomNew)?fmt(d.dpNomNew,0)+' Pa':'—'},
+      {l:'New Vnom in all units', v:d.all},
+      {l:'Status', v:d.statusPDF}
     ]);
     doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(120);
-    doc.text('Vnom2 = Vnom1 x (F2 / F1).  At a fixed measured dP, displayed flow is proportional to Vnom.',14,y+6);
+    doc.text('Raise Vnom first (cap 3.5 x Vmax); if not enough, reduce dP@Vnom. F = Vnom x sqrt(dP / dP@Vnom).',14,y+6);
     footer(doc); doc.save('VAV-respan-'+stamp()+'.pdf');
   }
 
@@ -510,10 +562,10 @@
   document.getElementById('pdfBtn2').addEventListener('click', pdfCal);
   document.getElementById('pdfBtn3').addEventListener('click', pdfSpan);
 
-  ['vnom1','f1','f2'].forEach(function(id){
+  ['vnom1','vmax','dpNomFac','f1','f2'].forEach(function(id){
     var el=document.getElementById(id); el.addEventListener('input',calcSpan); el.addEventListener('change',calcSpan);
   });
-  ['unitVnom1','unitF1','unitF2'].forEach(function(id){
+  ['unitNom','unitF1','unitF2'].forEach(function(id){
     document.getElementById(id).addEventListener('change',calcSpan);
   });
   document.getElementById('calcBtn3').addEventListener('click',calcSpan);
