@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAV Reconfigure Tool</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --card2:#273449; --line:#334155;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --accent2:#22d3ee; --good:#34d399;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(160deg,#0b1220,#0f172a 40%,#111c30); color:var(--text); min-height:100vh; padding:20px 14px 48px;}
+  .wrap{max-width:560px; margin:0 auto;}
+  h1{font-size:1.35rem; margin:0 0 4px; letter-spacing:.2px;}
+  .sub{color:var(--muted); font-size:.85rem; margin:0 0 18px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 16px; margin-bottom:16px; box-shadow:0 8px 30px rgba(0,0,0,.25);}
+  .card h2{font-size:.9rem; margin:0 0 12px; color:var(--accent2); letter-spacing:.3px; text-transform:uppercase;}
+  label{display:block; font-size:.82rem; color:var(--muted); margin-bottom:6px; font-weight:600;}
+  .field{margin-bottom:14px;} .field:last-child{margin-bottom:0;}
+  input[type=number]{width:100%; padding:12px; font-size:1.05rem; border-radius:10px; border:1px solid var(--line); background:var(--card2); color:var(--text); -webkit-appearance:none; appearance:none;}
+  input[type=number]:focus, input[type=text]:focus, select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(56,189,248,.15);}
+  input[type=text]{width:100%; padding:13px 12px; font-size:1.05rem; border-radius:10px; border:1px solid var(--line); background:var(--card2); color:var(--text); -webkit-appearance:none; appearance:none;}
+  input[type=file]{width:100%; font-size:.9rem; color:var(--text); background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:11px 12px;}
+  select{width:100%; padding:12px 10px; font-size:1.05rem; border-radius:10px; border:1px solid var(--line); background:var(--card2); color:var(--text); -webkit-appearance:none; appearance:none; text-align:center;}
+  .row{display:flex; gap:12px;} .row .field{flex:1;}
+  .seg{display:flex; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:5px; margin-bottom:18px;}
+  .seg button{flex:1; padding:12px 8px; border:none; background:transparent; color:var(--muted); font-size:.92rem; font-weight:700; border-radius:9px; cursor:pointer; transition:.15s;}
+  .seg button.active{background:linear-gradient(150deg,var(--accent),var(--accent2)); color:#082032;}
+  .hint{font-size:.72rem; color:var(--muted); margin-top:4px;}
+  .btn{width:100%; margin-top:4px; padding:14px; font-size:1.05rem; font-weight:700; border:none; border-radius:10px; cursor:pointer; color:#082032; background:linear-gradient(150deg,var(--accent),var(--accent2));}
+  .btn:active{transform:translateY(1px);}
+  .btn.ghost{background:transparent; color:var(--accent); border:1px solid var(--accent); margin-top:12px;}
+  .matches{margin-top:10px;}
+  .match{display:block; width:100%; text-align:left; background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:12px 13px; margin-top:8px; cursor:pointer; color:var(--text); line-height:1.35;}
+  .match:active{border-color:var(--accent); background:#2c3a52;}
+  .match .ser{font-weight:700; font-size:.92rem; color:var(--accent2);}
+  .match .meta{font-size:.76rem; color:var(--muted); margin-top:2px;}
+  .nomatch{font-size:.82rem; color:var(--muted); margin-top:10px;}
+  .results{background:linear-gradient(150deg,#12243b,#152a44); border:1px solid #1f3a5c;}
+  .res-row{display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-bottom:1px dashed rgba(148,163,184,.25); gap:12px;}
+  .res-row:last-child{border-bottom:none;}
+  .res-label{font-size:.85rem; color:var(--muted);}
+  .res-val{font-size:1.1rem; font-weight:700; text-align:right;}
+  .res-val.big{font-size:1.55rem; color:var(--accent2);}
+  .res-val .u{font-size:.75rem; color:var(--muted); font-weight:500; margin-left:3px;}
+  .recgrid .res-val{font-size:.92rem;}
+  .foot{font-size:.72rem; color:var(--muted); line-height:1.5; margin-top:6px;}
+  code{background:var(--card2); padding:1px 5px; border-radius:5px; font-size:.78rem;}
+  .credit{text-align:center; font-size:.75rem; color:var(--muted); margin-top:22px;}
+  .credit a{color:var(--accent); text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>VAV Reconfigure Tool</h1>
+  <p class="sub">Field-match a controller's airflow reading to a third-party measurement. Enter the factory data manually, or look it up by controller serial from the calibration file.</p>
+
+  <div class="seg" id="srcSeg">
+    <button data-src="manual" class="active">Manual entry</button>
+    <button data-src="serial">Look up by serial</button>
+  </div>
+
+  <!-- ===== SERIAL LOOKUP ===== -->
+  <div id="serialBlock" style="display:none;">
+    <div class="card">
+      <h2>Calibration data</h2>
+      <div class="field">
+        <label>Load calibration Excel (.xlsx)</label>
+        <input type="file" id="xlsxFile" accept=".xlsx,.xls,.csv">
+        <div class="hint" id="xlsxStatus">No file loaded yet.</div>
+      </div>
+      <div class="field" id="searchWrap" hidden style="margin-bottom:0;">
+        <label>Controller serial — type any part</label>
+        <input type="text" id="serialSearch" placeholder="e.g. 10035 or 22536-10035-023-164" autocomplete="off">
+        <div id="matches" class="matches"></div>
+      </div>
+    </div>
+    <div class="card" id="recordCard" hidden>
+      <h2>Selected controller (from data)</h2>
+      <div id="recordBody" class="recgrid"></div>
+    </div>
+  </div>
+
+  <!-- ===== MANUAL FACTORY ENTRY ===== -->
+  <div id="manualBlock">
+    <div class="card">
+      <h2>Factory settings &amp; limit</h2>
+      <div class="field">
+        <label>Nominal V&#775;nom1 (factory set)</label>
+        <div class="row" style="gap:10px;">
+          <input type="number" id="vnom1" placeholder="e.g. 1000" inputmode="decimal" style="flex:2;">
+          <select id="unitNom" style="flex:1;">
+            <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>ΔP@V&#775;nom (factory / test-bench, Pa)</label>
+        <input type="number" id="dpNomFac" placeholder="e.g. 100" inputmode="numeric" step="1">
+      </div>
+      <div class="field">
+        <label>V&#775;max (same unit as V&#775;nom1)</label>
+        <input type="number" id="vmax" placeholder="e.g. 500" inputmode="decimal">
+        <div class="hint">V&#775;nom is capped at 3.5 × V&#775;max.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FLOWS ===== -->
+  <div class="card">
+    <h2>Flows</h2>
+    <div class="field">
+      <label>Flow the controller shows now (F1)</label>
+      <div class="row" style="gap:10px;">
+        <input type="number" id="f1" placeholder="e.g. 900" inputmode="decimal" style="flex:2;">
+        <select id="unitF1" style="flex:1;">
+          <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Third-party measured flow — target (F2)</label>
+      <div class="row" style="gap:10px;">
+        <input type="number" id="f2" placeholder="e.g. 1000" inputmode="decimal" style="flex:2;">
+        <select id="unitF2" style="flex:1;">
+          <option value="cfm">CFM</option><option value="ls">L/s</option><option value="m3h">m³/h</option>
+        </select>
+      </div>
+      <div class="hint">F1 and F2 can be in different units — converted before comparison.</div>
+    </div>
+    <button class="btn" id="calcBtn">Calculate</button>
+  </div>
+
+  <div class="card results">
+    <div class="res-row"><span class="res-label">ΔP the controller reads at F1 (calculated)</span><span class="res-val" id="outDpNow">— <span class="u">Pa</span></span></div>
+    <div class="res-row"><span class="res-label">Upper limit 3.5 × V&#775;max</span><span class="res-val" id="outCap">—</span></div>
+    <div class="res-row"><span class="res-label">New V&#775;nom to set</span><span class="res-val big" id="outVnom2">—</span></div>
+    <div class="res-row"><span class="res-label">New ΔP@V&#775;nom to set</span><span class="res-val" id="outDpNomNew">— <span class="u">Pa</span></span></div>
+    <div class="res-row"><span class="res-label">Status</span><span class="res-val" id="outStatus" style="font-size:.85rem;">—</span></div>
+    <div class="res-row"><span class="res-label">New V&#775;nom in all units</span><span class="res-val" id="outVnom2All" style="font-size:.9rem;">—</span></div>
+  </div>
+  <button class="btn ghost" id="pdfBtn">⤓ Download PDF</button>
+
+  <p class="foot">
+    <strong>How it works.</strong> The controller reads flow as <code>F = V̇nom·√(ΔP/ΔP@V̇nom)</code>.
+    To make it read the third-party flow F2 at the same operating point, V̇nom is raised first
+    (<code>V̇nom·F2/F1</code>), capped at <code>3.5·V̇max</code>; if the cap isn't enough, ΔP@V̇nom is then
+    reduced so it reads F2 (flow ∝ √ΔP). ΔP values are whole Pascals.
+  </p>
+  <p class="credit">Developed by Dynacraft &middot; <a href="mailto:sales@dynacraftindia.com">sales@dynacraftindia.com</a></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  var TO_M3S = { cfm:0.000471947, ls:0.001, m3h:1/3600 };
+  var UNAME  = { cfm:'CFM', ls:'L/s', m3h:'m³/h' };
+  var RHO = 1.2;
+
+  function num(id){ var v = parseFloat(document.getElementById(id).value); return isFinite(v) ? v : NaN; }
+  function fmt(x, dp){ if(!isFinite(x)) return '—'; return x.toLocaleString(undefined,{minimumFractionDigits:dp, maximumFractionDigits:dp}); }
+  function setVal(id, val, dp, unit){ document.getElementById(id).innerHTML = fmt(val,dp) + (unit ? ' <span class="u">'+unit+'</span>' : ''); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function intOnly(id){ var el=document.getElementById(id); el.addEventListener('input',function(){ var m=el.value.match(/^\d+/); var c=m?m[0]:''; if(c!==el.value) el.value=c; }); }
+  intOnly('dpNomFac');
+
+  /* ---------- source toggle ---------- */
+  var srcSeg = document.getElementById('srcSeg'), curSrc='manual';
+  srcSeg.addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return; curSrc=b.dataset.src;
+    Array.prototype.forEach.call(srcSeg.children,function(c){ c.classList.toggle('active', c===b); });
+    document.getElementById('manualBlock').style.display = curSrc==='manual' ? '' : 'none';
+    document.getElementById('serialBlock').style.display = curSrc==='serial' ? '' : 'none';
+    setManualEditable(curSrc==='manual');
+  });
+  function setManualEditable(on){
+    ['vnom1','dpNomFac','vmax','unitNom'].forEach(function(id){ document.getElementById(id).readOnly = !on; });
+    document.getElementById('unitNom').disabled = !on;
+  }
+
+  /* ---------- re-span calculation ---------- */
+  function calcSpan(){
+    var uN = document.getElementById('unitNom').value;
+    var vnom1 = num('vnom1'), vmax = num('vmax'), dpNomFac = num('dpNomFac');
+    var f1 = num('f1'), u1 = document.getElementById('unitF1').value;
+    var f2 = num('f2'), u2 = document.getElementById('unitF2').value;
+
+    var vnom1b = isFinite(vnom1)? vnom1*TO_M3S[uN] : NaN;
+    var vmaxb  = isFinite(vmax)?  vmax*TO_M3S[uN]  : NaN;
+    var f1b = isFinite(f1)? f1*TO_M3S[u1] : NaN;
+    var f2b = isFinite(f2)? f2*TO_M3S[u2] : NaN;
+    var capb = isFinite(vmaxb)? 3.5*vmaxb : NaN;
+
+    var dpNow = (isFinite(dpNomFac)&&isFinite(f1b)&&isFinite(vnom1b)&&vnom1b>0)
+                ? dpNomFac*Math.pow(f1b/vnom1b,2) : NaN;
+
+    var vnom2b=NaN, dpNomNew=NaN, sUI='—', sPDF='—';
+    if(isFinite(vnom1b)&&isFinite(f1b)&&f1b>0&&isFinite(f2b)){
+      var reqVnomb = vnom1b*(f2b/f1b);
+      if(isFinite(capb) && reqVnomb>capb){
+        vnom2b = capb;
+        dpNomNew = isFinite(dpNow)? dpNow*Math.pow(vnom2b/f2b,2) : NaN;
+        sUI  = 'V̇nom capped at 3.5×V̇max; ΔP@V̇nom reduced';
+        sPDF = 'Vnom capped at 3.5 x Vmax; dP@Vnom reduced';
+      } else {
+        vnom2b = reqVnomb; dpNomNew = dpNomFac;
+        sUI  = 'Target met by V̇nom alone; ΔP@V̇nom unchanged';
+        sPDF = 'Target met by Vnom alone; dP@Vnom unchanged';
+      }
+    }
+    var dpNowR = isFinite(dpNow)? Math.round(dpNow):NaN;
+    var dpNomNewR = isFinite(dpNomNew)? Math.round(dpNomNew):NaN;
+    setVal('outDpNow', dpNowR, 0, 'Pa');
+    setVal('outCap', isFinite(capb)? capb/TO_M3S[uN]:NaN, 0, UNAME[uN]);
+    setVal('outVnom2', isFinite(vnom2b)? vnom2b/TO_M3S[uN]:NaN, 0, UNAME[uN]);
+    setVal('outDpNomNew', dpNomNewR, 0, 'Pa');
+    document.getElementById('outStatus').textContent = sUI;
+    var all='—';
+    if(isFinite(vnom2b)) all = fmt(vnom2b/TO_M3S.cfm,0)+' CFM  ·  '+fmt(vnom2b/TO_M3S.m3h,0)+' m³/h  ·  '+fmt(vnom2b/TO_M3S.ls,1)+' L/s';
+    document.getElementById('outVnom2All').innerHTML = all;
+
+    window.lastSpan = {
+      src:curSrc, record:window.selRecord||null,
+      vnom1: fmt(vnom1,0)+' '+UNAME[uN], vmax: fmt(vmax,0)+' '+UNAME[uN], dpNomFac: fmt(dpNomFac,0)+' Pa',
+      cap: isFinite(capb)? fmt(capb/TO_M3S[uN],0)+' '+UNAME[uN]:'—',
+      f1: fmt(f1,0)+' '+UNAME[u1], f2: fmt(f2,0)+' '+UNAME[u2], dpNow: dpNowR,
+      vnom2: isFinite(vnom2b)? vnom2b/TO_M3S[uN]:NaN, unit:UNAME[uN], dpNomNew:dpNomNewR, statusPDF:sPDF, all:all
+    };
+  }
+  ['vnom1','vmax','dpNomFac','f1','f2'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcSpan); el.addEventListener('change',calcSpan); });
+  ['unitNom','unitF1','unitF2'].forEach(function(id){ document.getElementById(id).addEventListener('change',calcSpan); });
+  document.getElementById('calcBtn').addEventListener('click',calcSpan);
+
+  /* ---------- Excel load + serial lookup ---------- */
+  var CAL=[], COLS={};
+  function resolveCols(headers){
+    function find(t){ for(var i=0;i<headers.length;i++){ var h=String(headers[i]||'').toLowerCase(); if(t(h)) return headers[i]; } return null; }
+    return {
+      serial: find(function(h){return h.indexOf('controller')>=0 && (h.indexOf('sr')>=0||h.indexOf('serial')>=0);}),
+      project: find(function(h){return h.indexOf('project')>=0;}),
+      jc: find(function(h){return h.indexOf('jc')>=0;}),
+      tag: find(function(h){return h.trim()==='tag' || h.indexOf('tag')>=0;}),
+      box: find(function(h){return h.indexOf('box')>=0 && h.indexOf('id')>=0;}),
+      vavlbl: find(function(h){return h.indexOf('vav')>=0 && (h.indexOf('serial')>=0||h.indexOf('label')>=0);}),
+      vmax_m3h: find(function(h){return h.indexOf('vmax')>=0 && (h.indexOf('m³')>=0||h.indexOf('m3')>=0);}),
+      vmax_cfm: find(function(h){return h.indexOf('vmax')>=0 && h.indexOf('cfm')>=0;}),
+      vnom_m3h: find(function(h){return h.indexOf('vnom')>=0 && (h.indexOf('m³')>=0||h.indexOf('m3')>=0);}),
+      vnom_cfm: find(function(h){return h.indexOf('vnom')>=0 && h.indexOf('cfm')>=0;}),
+      dp: find(function(h){return (h.indexOf('δp')>=0) || (h.indexOf('vnom')>=0 && h.indexOf('pa')>=0) || h.indexOf('p@vnom')>=0;})
+    };
+  }
+  function keyOf(s){ return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,''); }
+  document.getElementById('xlsxFile').addEventListener('change', function(e){
+    var f=e.target.files[0]; if(!f) return;
+    var st=document.getElementById('xlsxStatus'); st.textContent='Reading '+f.name+' …';
+    var rd=new FileReader();
+    rd.onload=function(ev){
+      try{
+        var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var rows=XLSX.utils.sheet_to_json(ws,{defval:null});
+        if(!rows.length){ st.textContent='No rows found in the file.'; return; }
+        COLS=resolveCols(Object.keys(rows[0]));
+        if(!COLS.serial){ st.textContent='Could not find a Controller Serial column in this file.'; return; }
+        CAL=rows.map(function(r){ return {
+          serial:r[COLS.serial], project:COLS.project?r[COLS.project]:'', jc:COLS.jc?r[COLS.jc]:'',
+          tag:COLS.tag?r[COLS.tag]:'', box:COLS.box?r[COLS.box]:'', vavlbl:COLS.vavlbl?r[COLS.vavlbl]:'',
+          vmax_m3h:COLS.vmax_m3h?r[COLS.vmax_m3h]:null, vmax_cfm:COLS.vmax_cfm?r[COLS.vmax_cfm]:null,
+          vnom_m3h:COLS.vnom_m3h?r[COLS.vnom_m3h]:null, vnom_cfm:COLS.vnom_cfm?r[COLS.vnom_cfm]:null,
+          dp:COLS.dp?r[COLS.dp]:null, _k:keyOf(r[COLS.serial])
+        }; }).filter(function(x){ return x.serial!=null && String(x.serial).trim()!=='' && x._k.length>=4; });
+        st.innerHTML='Loaded <strong>'+CAL.length+'</strong> controllers from '+esc(f.name)+'.';
+        document.getElementById('searchWrap').hidden=false;
+        document.getElementById('serialSearch').value=''; renderMatches('');
+      }catch(err){ st.textContent='Could not read this file ('+err.message+'). Make sure it is a valid .xlsx.'; }
+    };
+    rd.readAsArrayBuffer(f);
+  });
+
+  function renderMatches(q){
+    var box=document.getElementById('matches'); var qk=keyOf(q);
+    if(qk.length<2){ box.innerHTML='<div class="nomatch">Type at least 2 characters of the serial.</div>'; return; }
+    var hits=CAL.filter(function(r){ return r._k.indexOf(qk)>=0; });
+    if(!hits.length){ box.innerHTML='<div class="nomatch">No controller matches “'+esc(q)+'”.</div>'; return; }
+    var cap=hits.slice(0,40), html='';
+    cap.forEach(function(r,i){
+      html+='<button type="button" class="match" data-i="'+CAL.indexOf(r)+'"><span class="ser">'+esc(r.serial)+'</span>'+
+            '<span class="meta">'+esc(r.project||'')+(r.tag?' · '+esc(r.tag):'')+(r.box?' · Box '+esc(r.box):'')+'</span></button>';
+    });
+    if(hits.length>cap.length) html+='<div class="nomatch">'+hits.length+' matches — type more to narrow.</div>';
+    box.innerHTML=html;
+  }
+  document.getElementById('serialSearch').addEventListener('input', function(){ window.selRecord=null; document.getElementById('recordCard').hidden=true; renderMatches(this.value); });
+  document.getElementById('matches').addEventListener('click', function(e){
+    var b=e.target.closest('.match'); if(!b) return;
+    selectRecord(CAL[parseInt(b.dataset.i,10)]);
+  });
+
+  function rrow(k,v){ return '<div class="res-row"><span class="res-label">'+k+'</span><span class="res-val">'+v+'</span></div>'; }
+  function selectRecord(r){
+    window.selRecord=r;
+    // populate the (read-only) factory fields in m³/h and run the calc
+    document.getElementById('unitNom').value='m3h';
+    document.getElementById('vnom1').value = (r.vnom_m3h!=null)? Math.round(r.vnom_m3h): '';
+    document.getElementById('vmax').value  = (r.vmax_m3h!=null)? Math.round(r.vmax_m3h): '';
+    document.getElementById('dpNomFac').value = (r.dp!=null)? Math.round(r.dp): '';
+    var body='';
+    body+=rrow('Controller serial', esc(r.serial));
+    if(r.project) body+=rrow('Project', esc(r.project));
+    if(r.jc!=null&&r.jc!=='') body+=rrow('JC No', esc(r.jc));
+    if(r.tag) body+=rrow('Tag', esc(r.tag));
+    if(r.box) body+=rrow('Box ID', esc(r.box));
+    if(r.vavlbl) body+=rrow('VAV serial (label)', esc(r.vavlbl));
+    body+=rrow('V̇max', (r.vmax_m3h!=null?fmt(r.vmax_m3h,0)+' m³/h':'—')+(r.vmax_cfm!=null?' · '+fmt(r.vmax_cfm,0)+' CFM':''));
+    body+=rrow('V̇nom', (r.vnom_m3h!=null?fmt(r.vnom_m3h,0)+' m³/h':'—')+(r.vnom_cfm!=null?' · '+fmt(r.vnom_cfm,0)+' CFM':''));
+    body+=rrow('ΔP@V̇nom', (r.dp!=null?fmt(r.dp,0)+' Pa':'—'));
+    document.getElementById('recordBody').innerHTML=body;
+    document.getElementById('recordCard').hidden=false;
+    document.getElementById('matches').innerHTML='';
+    document.getElementById('serialSearch').value=r.serial;
+    calcSpan();
+  }
+
+  /* ---------- PDF ---------- */
+  function ensureJs(){ if(window.jspdf&&window.jspdf.jsPDF) return true; alert('PDF engine could not load — needs internet.'); return false; }
+  function stamp(){ return new Date().toISOString().slice(0,16).replace(/[:T]/g,'-'); }
+  function pdfBlock(doc,y,items){ items.forEach(function(p){
+    if(p.h){ doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(0,140,170); doc.text(p.h,14,y); y+=6.5; return; }
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(80); doc.text(p.l,16,y);
+    doc.setFont('helvetica','bold'); doc.setTextColor(20); doc.text(String(p.v),120,y); y+=6.5; }); return y; }
+  document.getElementById('pdfBtn').addEventListener('click', function(){
+    calcSpan(); if(!ensureJs()) return; var d=window.lastSpan;
+    var doc=new window.jspdf.jsPDF();
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(20);
+    doc.text('VAV Reconfigure - Field Report',14,20); doc.setDrawColor(205); doc.line(14,24,196,24);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(120);
+    doc.text(new Date().toLocaleString(),14,30);
+    var items=[{h:'Controller'}];
+    var r=d.record;
+    if(r){ items.push({l:'Serial',v:String(r.serial)});
+      if(r.project) items.push({l:'Project',v:String(r.project)});
+      if(r.jc!=null&&r.jc!=='') items.push({l:'JC No',v:String(r.jc)});
+      if(r.tag) items.push({l:'Tag',v:String(r.tag)});
+      if(r.box) items.push({l:'Box ID',v:String(r.box)});
+    } else { items.push({l:'Source',v:'Manual entry'}); }
+    items.push({h:'Factory settings'},
+      {l:'Vnom (factory)',v:d.vnom1},{l:'dP@Vnom (factory)',v:d.dpNomFac},{l:'Vmax',v:d.vmax},{l:'Upper limit 3.5 x Vmax',v:d.cap});
+    items.push({h:'Field readings'},
+      {l:'Controller shows now (F1)',v:d.f1},{l:'dP controller reads at F1 (calc)',v:isFinite(d.dpNow)?fmt(d.dpNow,0)+' Pa':'—'},{l:'Third-party measured (F2)',v:d.f2});
+    items.push({h:'New settings to enter'},
+      {l:'New Vnom',v:isFinite(d.vnom2)?fmt(d.vnom2,0)+' '+d.unit:'—'},{l:'New dP@Vnom',v:isFinite(d.dpNomNew)?fmt(d.dpNomNew,0)+' Pa':'—'},
+      {l:'New Vnom (all units)',v:d.all},{l:'Status',v:d.statusPDF});
+    var y=pdfBlock(doc,40,items);
+    doc.setDrawColor(205); doc.line(14,y+2,196,y+2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90);
+    doc.text('Developed by Dynacraft  ·  sales@dynacraftindia.com',14,y+9);
+    doc.save('VAV-reconfigure-'+stamp()+'.pdf');
+  });
+
+  setManualEditable(true);
+  calcSpan();
+</script>
+</body>
+</html>
